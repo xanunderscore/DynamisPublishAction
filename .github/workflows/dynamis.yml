@@ -24,12 +24,13 @@ on:
         required: true
     outputs:
       completed:
-        description: True if a new version was built and published.
+        description: "`'true'` if a new version was built and published."
         value: ${{ jobs.check_version.outputs.should_build }}
       version:
         value: ${{ jobs.check_version.outputs.local_version }}
-      testing:
-        value: ${{ inputs.testing }}
+      release_type:
+        description: "`testing` or `latest`"
+        value: ${{ jobs.check_version.outputs.release_type }}
 
 jobs:
   check_version:
@@ -39,6 +40,7 @@ jobs:
       project_file: ${{ steps.check_version.outputs.project_file }}
       local_version: ${{ steps.check_version.outputs.local_version }}
       remote_version: ${{ steps.check_version.outputs.remote_version }}
+      release_type: ${{ steps.check_version.outputs.release_type }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -73,6 +75,7 @@ jobs:
           if [ '${{ inputs.testing }}' == 'true' ]; then
             release_type=testing
           fi
+          echo "release_type=$release_type"
 
           remote_version=$(curl -f https://puni.sh/api/plugins/${{ inputs.plugin_id }}/${{ inputs.internal_name }}/versions/$release_type || echo "0.0.0.0")
           echo "remote_version=$remote_version" >> $GITHUB_OUTPUT
