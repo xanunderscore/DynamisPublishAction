@@ -19,6 +19,9 @@ on:
       testing:
         type: boolean
         required: false
+    secrets:
+      publisher_key:
+        required: true
     outputs:
       completed:
         description: True if a new version was built and published.
@@ -132,3 +135,5 @@ jobs:
           path: latest.zip
           type: ${{ inputs.testing && 'testing' || 'latest' }}
           dalamud_version: ${{ inputs.dalamud_version }}
+        env:
+          PUBLISHER_KEY: ${{ secrets.publisher_key }}
