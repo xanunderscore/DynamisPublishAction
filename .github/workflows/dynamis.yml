@@ -68,7 +68,7 @@ jobs:
           fi
           echo "project_file=$project_file" >> $GITHUB_OUTPUT
 
-          local_version=$(xq -x //PropertyGroup/Version < ${{ inputs.project_file }})
+          local_version=$(xq -x //PropertyGroup/Version < "$project_file")
           echo "local_version=$local_version" >> $GITHUB_OUTPUT
 
           release_type=latest
