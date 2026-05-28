@@ -75,7 +75,7 @@ jobs:
           if [ '${{ inputs.testing }}' == 'true' ]; then
             release_type=testing
           fi
-          echo "release_type=$release_type"
+          echo "release_type=$release_type" >> $GITHUB_OUTPUT
 
           remote_version=$(curl -f https://puni.sh/api/plugins/${{ inputs.plugin_id }}/${{ inputs.internal_name }}/versions/$release_type || echo "0.0.0.0")
           echo "remote_version=$remote_version" >> $GITHUB_OUTPUT
