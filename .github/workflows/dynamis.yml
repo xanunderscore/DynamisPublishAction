@@ -52,6 +52,10 @@ jobs:
       - name: Compare version with published
         id: check_version
         run: |
+          version_gte() {
+            printf '%s\n%s\n' "$2" "$1" | sort --check=quiet --version-sort
+          }
+
           project_file="${{ inputs.project_file }}"
           if [ -z "$project_file" ]; then
             i=0
@@ -77,10 +81,18 @@ jobs:
           fi
           echo "release_type=$release_type" >> $GITHUB_OUTPUT
 
-          remote_version=$(curl -f https://puni.sh/api/plugins/${{ inputs.plugin_id }}/${{ inputs.internal_name }}/versions/$release_type || echo "0.0.0.0")
-          echo "remote_version=$remote_version" >> $GITHUB_OUTPUT
+          version_latest=$(curl -f https://puni.sh/api/plugins/${{ inputs.plugin_id }}/${{ inputs.internal_name }}/versions/latest || echo "0.0.0.0")
+          version_testing=$(curl -f https://puni.sh/api/plugins/${{ inputs.plugin_id }}/${{ inputs.internal_name }}/versions/testing || echo "0.0.0.0")
 
-          if printf '%s\n%s\n' "$local_version" "$remote_version" | sort --check=quiet --version-sort; then
+          if version_gte "$version_testing" "$version_latest"; then
+            actual_version="$version_testing"
+          else
+            actual_version="$version_latest"
+          fi
+
+          echo "remote_version=$actual_version" >> $GITHUB_OUTPUT
+
+          if version_gte "$actual_version" "$local_version"; then
             echo build=false >> $GITHUB_OUTPUT
           else
             echo build=true >> $GITHUB_OUTPUT
