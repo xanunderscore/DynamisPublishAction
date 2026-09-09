@@ -121,7 +121,7 @@ jobs:
 
       - name: Compile
         run: |
-          dotnet build -c Release ${{ needs.check_version.outputs.project_file }} -o /tmp/plugin-build
+          dotnet publish ${{ needs.check_version.outputs.project_file }} -o /tmp/plugin-build
           cp $(find /tmp/plugin-build -name latest.zip) /tmp/latest.zip
           unzip -l /tmp/latest.zip
 
