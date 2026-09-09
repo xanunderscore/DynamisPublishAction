@@ -121,6 +121,7 @@ jobs:
 
       - name: Compile
         run: |
+          dotnet restore
           dotnet publish ${{ needs.check_version.outputs.project_file }} -o /tmp/plugin-build
           cp $(find /tmp/plugin-build -name latest.zip) /tmp/latest.zip
           unzip -l /tmp/latest.zip
