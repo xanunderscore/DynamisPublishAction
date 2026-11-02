@@ -1,0 +1,62 @@
+name: getmeta
+description: Figure out what the plugin needs
+inputs:
+  plugin_id:
+    required: true
+  project_file:
+    required: true
+  internal_name:
+    required: true
+  testing:
+    required: true
+  dotnet_version:
+    required: true
+  dalamud_version:
+    required: true
+  version:
+    required: true
+  version_policy:
+    required: true
+outputs:
+  internal_name:
+    value: ${{ steps.plugin_version.outputs.internal_name }}
+  dotnet_version:
+    value: ${{ steps.dalamud_version.outputs.dotnet_version }}
+  dalamud_version:
+    value: ${{ steps.dalamud_version.outputs.dalamud_version }}
+  project_file:
+    value: ${{ steps.plugin_version.outputs.project_file }}
+  local_version:
+    value: ${{ steps.plugin_version.outputs.local_version }}
+  remote_version:
+    value: ${{ steps.plugin_version.outputs.remote_version }}
+  release_type:
+    value: ${{ steps.plugin_version.outputs.release_type }}
+  should_build:
+    value: ${{ steps.plugin_version.outputs.build }}
+runs:
+  using: composite
+  steps:
+    - id: dalamud_version
+      run: bash ${{ github.action_path }}/dalamud.sh
+      shell: bash
+      env:
+        DALAMUD_VERSION: ${{ inputs.dalamud_version }}
+        DOTNET_VERSION: ${{ inputs.dotnet_version }}
+
+    - uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ steps.dalamud_version.outputs.dotnet_version }}
+      if: ${{ !inputs.internal_name || (!inputs.version && inputs.version_policy == 'assembly') }}
+
+    - id: plugin_version
+      run: bash ${{ github.action_path }}/plugin.sh
+      shell: bash
+      env:
+        PLUGIN_ID: ${{ inputs.plugin_id }}
+        PROJECT_FILE: ${{ inputs.project_file }}
+        VERSION: ${{ inputs.version }}
+        VERSION_POLICY: ${{ inputs.version_policy }}
+        INTERNAL_NAME: ${{ inputs.internal_name }}
+        TESTING: ${{ inputs.testing }}
+        REF_NAME: ${{ github.ref_name }}

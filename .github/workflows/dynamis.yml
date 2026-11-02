@@ -4,18 +4,25 @@ on:
       plugin_id:
         type: number
         required: true
+      version:
+        type: string
+        required: false
+      version_policy:
+        type: string
+        required: false
+        default: assembly
       internal_name:
+        type: string
+        required: false
+      project_file:
         type: string
         required: false
       dotnet_version:
         type: string
-        required: true
-      project_file:
-        type: string
         required: false
       dalamud_version:
         type: number
-        required: true
+        required: false
       testing:
         type: boolean
         required: false
@@ -36,74 +43,30 @@ jobs:
   check_version:
     runs-on: ubuntu-latest
     outputs:
-      should_build: ${{ steps.check_version.outputs.build }}
+      internal_name: ${{ steps.check_version.outputs.internal_name }}
+      dotnet_version: ${{ steps.check_version.outputs.dotnet_version }}
+      dalamud_version: ${{ steps.check_version.outputs.dalamud_version }}
       project_file: ${{ steps.check_version.outputs.project_file }}
       local_version: ${{ steps.check_version.outputs.local_version }}
       remote_version: ${{ steps.check_version.outputs.remote_version }}
       release_type: ${{ steps.check_version.outputs.release_type }}
+      should_build: ${{ steps.check_version.outputs.should_build }}
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Set up .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: ${{ inputs.dotnet_version }}
-
-      - name: Compare version with published
+      - uses: ./.github/actions/getmeta@dotnet-msbuild
         id: check_version
-        run: |
-          version_gte() {
-            printf '%s\n%s\n' "$2" "$1" | sort --check=quiet --version-sort
-          }
-
-          project_file="${{ inputs.project_file }}"
-          if [ -z "$project_file" ]; then
-            i=0
-            find . -name '*.csproj' -print0 | while IFS= read -r -d $'\0' file; do
-              echo "$file"
-              project_file="$file"
-              i=$((i + 1))
-            done
-
-            if (( i != 1 )); then
-              echo >&2 "Configuration error: project_file was not specified and more than one .csproj was found in the repository. Exiting."
-              exit 1
-            fi
-          fi
-          echo "project_file=$project_file" | tee $GITHUB_OUTPUT
-
-          local_version=$(dotnet msbuild -getProperty:Version "$project_file")
-          echo "local_version=$local_version" | tee $GITHUB_OUTPUT
-
-          release_type=latest
-          if [ '${{ inputs.testing }}' == 'true' ]; then
-            release_type=testing
-          fi
-          echo "release_type=$release_type" | tee $GITHUB_OUTPUT
-
-          internal_name="${{ inputs.internal_name }}"
-          if [ -z "$internal_name" ]; then
-            internal_name=$(dotnet msbuild -getProperty:MSBuildProjectName "$project_file")
-          fi
-
-          version_latest=$(curl -f "https://puni.sh/api/plugins/${{ inputs.plugin_id }}/$internal_name/versions/latest" || echo "0.0.0.0")
-          version_testing=$(curl -f "https://puni.sh/api/plugins/${{ inputs.plugin_id }}/$internal_name/versions/testing" || echo "0.0.0.0")
-
-          if version_gte "$version_testing" "$version_latest"; then
-            actual_version="$version_testing"
-          else
-            actual_version="$version_latest"
-          fi
-
-          echo "remote_version=$actual_version" | tee $GITHUB_OUTPUT
-
-          if version_gte "$actual_version" "$local_version"; then
-            echo build=false | tee $GITHUB_OUTPUT
-          else
-            echo build=true | tee $GITHUB_OUTPUT
-          fi
+        with:
+          plugin_id: ${{ inputs.plugin_id }}
+          project_file: ${{ inputs.project_file }}
+          internal_name: ${{ inputs.internal_name }}
+          testing: ${{ inputs.testing && 'true' || 'false' }}
+          dotnet_version: ${{ inputs.dotnet_version }}
+          dalamud_version: ${{ inputs.dalamud_version }}
+          version: ${{ inputs.version }}
+          version_policy: ${{ inputs.version_policy }}
 
   build:
     runs-on: ubuntu-latest
@@ -119,7 +82,7 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: ${{ inputs.dotnet_version }}
+          dotnet-version: ${{ needs.check_version.outputs.dotnet_version }}
           
       - name: Download Dalamud Latest
         run: |
@@ -129,7 +92,7 @@ jobs:
       - name: Compile
         run: |
           dotnet restore
-          dotnet publish ${{ needs.check_version.outputs.project_file }} -o /tmp/plugin-build
+          dotnet publish -p:AssemblyVersion=${{ needs.check_version.outputs.local_version }} ${{ needs.check_version.outputs.project_file }} -o /tmp/plugin-build
           cp $(find /tmp/plugin-build -name latest.zip) /tmp/latest.zip
           unzip -l /tmp/latest.zip
 
@@ -153,10 +116,10 @@ jobs:
         uses: PunishXIV/dynamis-action@v1
         with:
           plugin_id: ${{ inputs.plugin_id }}
-          internal_name: ${{ inputs.internal_name }}
+          internal_name: ${{ needs.check_version.outputs.internal_name }}
           version_number: ${{ needs.check_version.outputs.local_version }}
           path: latest.zip
-          type: ${{ inputs.testing && 'testing' || 'latest' }}
-          dalamud_version: ${{ inputs.dalamud_version }}
+          type: ${{ needs.check_version.outputs.release_type }}
+          dalamud_version: ${{ needs.check_version.outputs.dalamud_version }}
         env:
           PUBLISHER_KEY: ${{ secrets.publisher_key }}
