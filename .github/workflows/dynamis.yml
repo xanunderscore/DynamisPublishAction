@@ -6,7 +6,7 @@ on:
         required: true
       internal_name:
         type: string
-        required: true
+        required: false
       dotnet_version:
         type: string
         required: true
@@ -83,8 +83,13 @@ jobs:
           fi
           echo "release_type=$release_type" >> $GITHUB_OUTPUT
 
-          version_latest=$(curl -f https://puni.sh/api/plugins/${{ inputs.plugin_id }}/${{ inputs.internal_name }}/versions/latest || echo "0.0.0.0")
-          version_testing=$(curl -f https://puni.sh/api/plugins/${{ inputs.plugin_id }}/${{ inputs.internal_name }}/versions/testing || echo "0.0.0.0")
+          internal_name="${{ inputs.internal_name }}"
+          if [ -z "$internal_name" ]; then
+            internal_name=$(dotnet msbuild -getProperty:MSBuildProjectName "$project_file")
+          fi
+
+          version_latest=$(curl -f "https://puni.sh/api/plugins/${{ inputs.plugin_id }}/$internal_name/versions/latest" || echo "0.0.0.0")
+          version_testing=$(curl -f "https://puni.sh/api/plugins/${{ inputs.plugin_id }}/$internal_name/versions/testing" || echo "0.0.0.0")
 
           if version_gte "$version_testing" "$version_latest"; then
             actual_version="$version_testing"
