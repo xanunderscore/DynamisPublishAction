@@ -72,16 +72,16 @@ jobs:
               exit 1
             fi
           fi
-          echo "project_file=$project_file" >> $GITHUB_OUTPUT
+          echo "project_file=$project_file" | tee $GITHUB_OUTPUT
 
           local_version=$(dotnet msbuild -getProperty:Version "$project_file")
-          echo "local_version=$local_version" >> $GITHUB_OUTPUT
+          echo "local_version=$local_version" | tee $GITHUB_OUTPUT
 
           release_type=latest
           if [ '${{ inputs.testing }}' == 'true' ]; then
             release_type=testing
           fi
-          echo "release_type=$release_type" >> $GITHUB_OUTPUT
+          echo "release_type=$release_type" | tee $GITHUB_OUTPUT
 
           internal_name="${{ inputs.internal_name }}"
           if [ -z "$internal_name" ]; then
@@ -97,12 +97,12 @@ jobs:
             actual_version="$version_latest"
           fi
 
-          echo "remote_version=$actual_version" >> $GITHUB_OUTPUT
+          echo "remote_version=$actual_version" | tee $GITHUB_OUTPUT
 
           if version_gte "$actual_version" "$local_version"; then
-            echo build=false >> $GITHUB_OUTPUT
+            echo build=false | tee $GITHUB_OUTPUT
           else
-            echo build=true >> $GITHUB_OUTPUT
+            echo build=true | tee $GITHUB_OUTPUT
           fi
 
   build:
