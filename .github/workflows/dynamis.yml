@@ -51,53 +51,43 @@ jobs:
 
       - name: Compare version with published
         id: check_version
-        shell: bash
         run: |
-          version_gte() {
-            printf '%s\n%s\n' "$2" "$1" | sort --check=quiet --version-sort
+          $ErrorActionPreference = "Stop"
+
+          $ProjectFile = "${{ inputs.project_file }}"
+
+          if (!$ProjectFile) {
+              $candidates = @(Get-ChildItem -Path '.' -Filter '*.csproj' -Recurse | ForEach-Object { $_.FullName })
+
+              if ($candidates.Count -ne 1) {
+                  Write-Error "Configuration error: project_file was not specified and more than one .csproj was found in the repository."
+              }
+
+              $ProjectFile = $candidates[0]
           }
 
-          project_file="${{ inputs.project_file }}"
-          if [ -z "$project_file" ]; then
-            i=0
-            find . -name '*.csproj' -print0 | while IFS= read -r -d $'\0' file; do
-              echo "$file"
-              project_file="$file"
-              i=$((i + 1))
-            done
+          Write-Output "project_file=$ProjectFile" >> $GITHUB_OUTPUT
 
-            if (( i != 1 )); then
-              echo >&2 "Configuration error: project_file was not specified and more than one .csproj was found in the repository. Exiting."
-              exit 1
-            fi
-          fi
-          echo "project_file=$project_file" >> $GITHUB_OUTPUT
+          $LocalVersion = msbuild -getProperty:Version $ProjectFile
+          Write-Output "local_version=$LocalVersion" >> $GITHUB_OUTPUT
 
-          local_version=$(msbuild -getProperty:Version "$project_file")
-          echo "local_version=$local_version" >> $GITHUB_OUTPUT
+          $ReleaseType = "latest"
+          if ('${{ inputs.testing }}' -eq 'true') {
+            $ReleaseType = "testing"
+          }
+          Write-Output "release_type=$ReleaseType" >> $GITHUB_OUTPUT
 
-          release_type=latest
-          if [ '${{ inputs.testing }}' == 'true' ]; then
-            release_type=testing
-          fi
-          echo "release_type=$release_type" >> $GITHUB_OUTPUT
+          $VersionLatest = [Version](Invoke-WebRequest -Uri "https://puni.sh/api/plugins/${{ inputs.plugin_id }}/${{ inputs.internal_name }}/versions/latest" -ContentType "text/plain" -UseBasicParsing).Content
+          $VersionTesting = [Version](Invoke-WebRequest -Uri "https://puni.sh/api/plugins/${{ inputs.plugin_id }}/${{ inputs.internal_name }}/versions/testing" -ContentType "text/plain" -UseBasicParsing).Content
 
-          version_latest=$(curl -f https://puni.sh/api/plugins/${{ inputs.plugin_id }}/${{ inputs.internal_name }}/versions/latest || echo "0.0.0.0")
-          version_testing=$(curl -f https://puni.sh/api/plugins/${{ inputs.plugin_id }}/${{ inputs.internal_name }}/versions/testing || echo "0.0.0.0")
+          $VersionActual = if ($VersionTesting -gt $VersionLatest) { $VersionTesting } else { $VersionLatest }
+          Write-Output "remote_version=$VersionActual" >> $GITHUB_OUTPUT
 
-          if version_gte "$version_testing" "$version_latest"; then
-            actual_version="$version_testing"
-          else
-            actual_version="$version_latest"
-          fi
-
-          echo "remote_version=$actual_version" >> $GITHUB_OUTPUT
-
-          if version_gte "$actual_version" "$local_version"; then
-            echo build=false >> $GITHUB_OUTPUT
-          else
-            echo build=true >> $GITHUB_OUTPUT
-          fi
+          if ($LocalVersion -gt $VersionActual) {
+            Write-Output "build=true" >> $GITHUB_OUTPUT
+          } else {
+            Write-Output "build-false" >> $GITHUB_OUTPUT
+          }
 
   build:
     runs-on: ubuntu-latest
