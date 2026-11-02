@@ -34,7 +34,7 @@ on:
 
 jobs:
   check_version:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     outputs:
       should_build: ${{ steps.check_version.outputs.build }}
       project_file: ${{ steps.check_version.outputs.project_file }}
@@ -48,9 +48,6 @@ jobs:
 
       - name: Setup msbuild
         uses: microsoft/setup-msbuild@v3
-
-      - name: Install xq
-        run: curl -sSL https://bit.ly/install-xq | sudo bash
 
       - name: Compare version with published
         id: check_version
