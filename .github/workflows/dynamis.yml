@@ -51,6 +51,7 @@ jobs:
 
       - name: Compare version with published
         id: check_version
+        shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
 
@@ -66,27 +67,27 @@ jobs:
               $ProjectFile = $candidates[0]
           }
 
-          Write-Output "project_file=$ProjectFile" | Tee-Object -FilePath $GITHUB_OUTPUT
+          Write-Output "project_file=$ProjectFile" | Tee-Object -FilePath $env:GITHUB_OUTPUT
 
           $LocalVersion = msbuild -getProperty:Version $ProjectFile
-          Write-Output "local_version=$LocalVersion" | Tee-Object -FilePath $GITHUB_OUTPUT
+          Write-Output "local_version=$LocalVersion" | Tee-Object -FilePath $env:GITHUB_OUTPUT
 
           $ReleaseType = "latest"
           if ('${{ inputs.testing }}' -eq 'true') {
             $ReleaseType = "testing"
           }
-          Write-Output "release_type=$ReleaseType" | Tee-Object -FilePath $GITHUB_OUTPUT
+          Write-Output "release_type=$ReleaseType" | Tee-Object -FilePath $env:GITHUB_OUTPUT
 
           $VersionLatest = [Version](Invoke-WebRequest -Uri "https://puni.sh/api/plugins/${{ inputs.plugin_id }}/${{ inputs.internal_name }}/versions/latest" -ContentType "text/plain" -UseBasicParsing).Content
           $VersionTesting = [Version](Invoke-WebRequest -Uri "https://puni.sh/api/plugins/${{ inputs.plugin_id }}/${{ inputs.internal_name }}/versions/testing" -ContentType "text/plain" -UseBasicParsing).Content
 
           $VersionActual = if ($VersionTesting -gt $VersionLatest) { $VersionTesting } else { $VersionLatest }
-          Write-Output "remote_version=$VersionActual" | Tee-Object -FilePath $GITHUB_OUTPUT
+          Write-Output "remote_version=$VersionActual" | Tee-Object -FilePath $env:GITHUB_OUTPUT
 
           if ($LocalVersion -gt $VersionActual) {
-            Write-Output "build=true" | Tee-Object -FilePath $GITHUB_OUTPUT
+            Write-Output "build=true" | Tee-Object -FilePath $env:GITHUB_OUTPUT
           } else {
-            Write-Output "build=false" | Tee-Object -FilePath $GITHUB_OUTPUT
+            Write-Output "build=false" | Tee-Object -FilePath $env:GITHUB_OUTPUT
           }
 
   build:
