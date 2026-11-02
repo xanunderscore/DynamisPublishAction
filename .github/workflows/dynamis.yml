@@ -46,6 +46,9 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Setup msbuild
+        uses: microsoft/setup-msbuild@v3
+
       - name: Install xq
         run: curl -sSL https://bit.ly/install-xq | sudo bash
 
