@@ -51,6 +51,7 @@ jobs:
 
       - name: Compare version with published
         id: check_version
+        shell: bash
         run: |
           version_gte() {
             printf '%s\n%s\n' "$2" "$1" | sort --check=quiet --version-sort
