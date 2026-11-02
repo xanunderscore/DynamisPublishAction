@@ -55,6 +55,11 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
 
+          function say {
+            param ([string]$contents)
+            Write-Output "$contents" | Tee-Object -Append -FilePath $env:GITHUB_OUTPUT
+          }
+
           $ProjectFile = "${{ inputs.project_file }}"
 
           if (!$ProjectFile) {
@@ -67,27 +72,27 @@ jobs:
               $ProjectFile = $candidates[0]
           }
 
-          Write-Output "project_file=$ProjectFile" >> $env:GITHUB_OUTPUT
+          say "project_file=$ProjectFile"
 
           $LocalVersion = msbuild -getProperty:Version $ProjectFile
-          Write-Output "local_version=$LocalVersion" >> $env:GITHUB_OUTPUT
+          say "local_version=$LocalVersion"
 
           $ReleaseType = "latest"
           if ('${{ inputs.testing }}' -eq 'true') {
             $ReleaseType = "testing"
           }
-          Write-Output "release_type=$ReleaseType" >> $env:GITHUB_OUTPUT
+          say "release_type=$ReleaseType"
 
           $VersionLatest = [Version](Invoke-WebRequest -Uri "https://puni.sh/api/plugins/${{ inputs.plugin_id }}/${{ inputs.internal_name }}/versions/latest" -ContentType "text/plain" -UseBasicParsing).Content
           $VersionTesting = [Version](Invoke-WebRequest -Uri "https://puni.sh/api/plugins/${{ inputs.plugin_id }}/${{ inputs.internal_name }}/versions/testing" -ContentType "text/plain" -UseBasicParsing).Content
 
           $VersionActual = if ($VersionTesting -gt $VersionLatest) { $VersionTesting } else { $VersionLatest }
-          Write-Output "remote_version=$VersionActual" >> $env:GITHUB_OUTPUT
+          say "remote_version=$VersionActual"
 
           if ($LocalVersion -gt $VersionActual) {
-            Write-Output "build=true" >> $env:GITHUB_OUTPUT
+            say "build=true"
           } else {
-            Write-Output "build=false" >> $env:GITHUB_OUTPUT
+            say "build=false"
           }
 
   build:
