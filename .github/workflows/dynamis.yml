@@ -21,7 +21,7 @@ on:
         type: string
         required: false
       dalamud_version:
-        type: number
+        type: string
         required: false
       testing:
         type: boolean
