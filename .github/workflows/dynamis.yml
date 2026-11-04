@@ -29,7 +29,7 @@ on:
       build_command:
         type: string
         required: false
-        default: build
+        default: build -c Release
     secrets:
       publisher_key:
         required: true
