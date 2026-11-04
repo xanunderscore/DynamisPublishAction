@@ -26,6 +26,10 @@ on:
       testing:
         type: boolean
         required: false
+      build_command:
+        type: string
+        required: true
+        default: build
     secrets:
       publisher_key:
         required: true
@@ -92,7 +96,7 @@ jobs:
       - name: Compile
         run: |
           dotnet restore
-          dotnet publish -p:AssemblyVersion=${{ needs.check_version.outputs.local_version }} ${{ needs.check_version.outputs.project_file }} -o /tmp/plugin-build
+          dotnet ${{ inputs.build_command }} -p:AssemblyVersion=${{ needs.check_version.outputs.local_version }} ${{ needs.check_version.outputs.project_file }} -o /tmp/plugin-build
           cp $(find /tmp/plugin-build -name latest.zip) /tmp/latest.zip
           unzip -l /tmp/latest.zip
 
