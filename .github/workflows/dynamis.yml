@@ -60,7 +60,7 @@ jobs:
         with:
           submodules: recursive
 
-      - uses: xanunderscore/DynamisPublishAction/.github/actions/getmeta@master
+      - uses: $/.github/actions/getmeta
         id: check_version
         with:
           plugin_id: ${{ inputs.plugin_id }}
