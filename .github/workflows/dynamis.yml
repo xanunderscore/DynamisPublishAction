@@ -28,7 +28,7 @@ on:
         required: false
       build_command:
         type: string
-        required: true
+        required: false
         default: build
     secrets:
       publisher_key:
