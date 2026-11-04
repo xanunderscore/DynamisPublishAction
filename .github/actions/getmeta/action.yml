@@ -33,7 +33,7 @@ outputs:
   release_type:
     value: ${{ steps.plugin_version.outputs.release_type }}
   should_build:
-    value: ${{ steps.plugin_version.outputs.build }}
+    value: ${{ steps.plugin_version.outputs.should_build }}
 runs:
   using: composite
   steps:
